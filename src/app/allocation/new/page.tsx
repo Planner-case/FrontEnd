@@ -3,9 +3,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { allocationSchema, AllocationFormData } from './schema';
-import { api } from '../../../lib/api/api';
+import { api, getSimulations } from '../../../lib/api/api';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Resolver } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,19 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
+interface Simulation {
+  id: number;
+  name: string;
+}
+
 export default function NewAllocationPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const { data: simulations, isLoading: isLoadingSimulations } = useQuery<Simulation[]>({
+    queryKey: ['simulations'],
+    queryFn: getSimulations,
+  });
 
   const resolver = zodResolver(allocationSchema) as unknown as Resolver<AllocationFormData>;
 
@@ -28,7 +38,11 @@ export default function NewAllocationPage() {
       value: 0,
       date: '',
       hasFinancing: false,
-      simulationId: 1,
+      simulationId: undefined,
+      startDate: '',
+      installments: 0,
+      interestRate: 0,
+      downPayment: 0,
     },
   });
 
@@ -203,9 +217,20 @@ export default function NewAllocationPage() {
               name="simulationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID da Simulação</FormLabel>
+                  <FormLabel>Simulação</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Select onValueChange={(value) => field.onChange(Number(value))} disabled={isLoadingSimulations}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingSimulations ? "Carregando..." : "Selecione a simulação"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {simulations?.map((simulation) => (
+                          <SelectItem key={simulation.id} value={String(simulation.id)}>
+                            {simulation.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

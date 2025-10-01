@@ -3,9 +3,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { movementSchema, MovementFormData } from './schema';
-import { api } from '../../../lib/api/api';
+import { api, getSimulations } from '../../../lib/api/api';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Resolver } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,19 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+interface Simulation {
+  id: number;
+  name: string;
+}
+
 export default function NewMovementPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const { data: simulations, isLoading: isLoadingSimulations } = useQuery<Simulation[]>({
+    queryKey: ['simulations'],
+    queryFn: getSimulations,
+  });
 
   const resolver = zodResolver(movementSchema) as unknown as Resolver<MovementFormData>;
 
@@ -27,7 +37,7 @@ export default function NewMovementPage() {
       frequency: 'UNICA',
       startDate: '',
       endDate: '',
-      simulationId: 1,
+      simulationId: undefined,
     },
   });
 
@@ -132,7 +142,7 @@ export default function NewMovementPage() {
               name="endDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data Final (Opcional)</FormLabel>
+                  <FormLabel>Data Final</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -146,9 +156,20 @@ export default function NewMovementPage() {
               name="simulationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID da Simulação</FormLabel>
+                  <FormLabel>Simulação</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Select onValueChange={(value) => field.onChange(Number(value))} disabled={isLoadingSimulations}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingSimulations ? "Carregando..." : "Selecione a simulação"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {simulations?.map((simulation) => (
+                          <SelectItem key={simulation.id} value={String(simulation.id)}>
+                            {simulation.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

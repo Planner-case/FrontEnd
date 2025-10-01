@@ -12,3 +12,8 @@ export async function getSimulationVersions(id: number) {
   const res = await api.get(`/simulations/${id}/versions`);
   return res.data;
 }
+
+export async function getSimulations() {
+  const res = await api.get('/simulations');
+  return res.data;
+}
